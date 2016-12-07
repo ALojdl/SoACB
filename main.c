@@ -130,8 +130,8 @@ void *can_fixed(void *param) {
 		start_time = end_time;
 
 		pthread_mutex_lock(&mutex);
-    buffer_add(&buffer_prior, CAN, init.can.streams[can_fixed_id].packets[i]); 
-   	pthread_mutex_unlock(&mutex);
+        buffer_add(&buffer_prior, CAN, init.can.streams[can_fixed_id].packets[i]); 
+       	pthread_mutex_unlock(&mutex);
 
 		i++;
 		/*This next statement can be changed to something more precise */
@@ -152,8 +152,8 @@ void *can_periodic(void *param) {
 		usleep((end_time - start_time)*1000);
 
 		pthread_mutex_lock(&mutex);
-    buffer_add(&buffer_prior, CAN, init.can.streams[can_periodic_id].packets[i]); 
-   	pthread_mutex_unlock(&mutex);
+        buffer_add(&buffer_prior, CAN, init.can.streams[can_periodic_id].packets[i]); 
+       	pthread_mutex_unlock(&mutex);
 
 		can_period_time[i] += init.can.streams[can_periodic_id].packets[i].time;
 		start_time = end_time;
@@ -164,7 +164,7 @@ void *can_periodic(void *param) {
 
 /* Thread for fixed lin packets */
 void *lin_fixed(void *param) {
-  int i = 0;
+    int i = 0;
 	int start_time = 0;
 	int end_time = init.lin.streams[lin_fixed_id].packets[0].time;
 
@@ -174,8 +174,8 @@ void *lin_fixed(void *param) {
 		start_time = end_time;
 
 		pthread_mutex_lock(&mutex);
-    buffer_add(&buffer_prior, LIN, init.lin.streams[lin_fixed_id].packets[i]); 
-   	pthread_mutex_unlock(&mutex);
+        buffer_add(&buffer_prior, LIN, init.lin.streams[lin_fixed_id].packets[i]); 
+       	pthread_mutex_unlock(&mutex);
 
 		i++;
 		/*This next statement can be changed to something more precise */
@@ -195,28 +195,27 @@ void *lin_periodic(void *param) {
 	while (buffer_prior.size != -1) {
 		usleep((end_time - start_time)*1000);
 
-		pthread_mutex_lock(&mutex);
-    buffer_add(&buffer_prior, LIN, init.lin.streams[lin_periodic_id].packets[i]); 
-   	pthread_mutex_unlock(&mutex);
+	    pthread_mutex_lock(&mutex);
+        buffer_add(&buffer_prior, LIN, init.lin.streams[lin_periodic_id].packets[i]); 
+       	pthread_mutex_unlock(&mutex);
 
-		lin_period_time[i] += init.lin.streams[lin_periodic_id].packets[i].time;
-		start_time = end_time;
-		end_time = min_time(lin_period_time, &i, lin_num_period);
+	    lin_period_time[i] += init.lin.streams[lin_periodic_id].packets[i].time;
+	    start_time = end_time;
+	    end_time = min_time(lin_period_time, &i, lin_num_period);
 	}
 	printf("Ending periodic thread\n");
 }
 
 int main(int argc, const char* argv[])
 {
-
-  struct timeval endwait;
+    struct timeval endwait;
 	struct timeval current;
 	struct timeval check;
-  struct timeval start;
+    struct timeval start;
 	double dif;
 
 	/* Get data from config file and initialize */
-  get_config("config.conf", &init);
+    get_config("config.conf", &init);
 	initializeData();
 	buffer_init(&buffer_prior);
 
@@ -226,7 +225,7 @@ int main(int argc, const char* argv[])
 	printf("Data sending starts....\n");
 
 	gettimeofday(&start,NULL);
-	endwait = addTime(start,12000);
+	endwait = addTime(start,init.time * 1000);
 	gettimeofday(&current,NULL);
 
 	while (getMiliTimeDiff(current, endwait) > 0) {
@@ -242,7 +241,7 @@ int main(int argc, const char* argv[])
 				} else {
 					printf("LIN Sent data: %d %s %s\n",buffer_prior.head->data.time,buffer_prior.head->data.PID,buffer_prior.head->data.data);
 				}
-   			buffer_remove(&buffer_prior);
+   			    buffer_remove(&buffer_prior);
 				pthread_mutex_unlock(&mutex);
 			}
 		}
@@ -262,7 +261,7 @@ int main(int argc, const char* argv[])
 	pthread_mutex_lock(&mutex);
 	buffer_deinit(&buffer_prior);
 	pthread_mutex_unlock(&mutex);
-  return 0;
+    return 0;
 }
 
 /*

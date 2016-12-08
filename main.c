@@ -217,17 +217,20 @@ int main(int argc, const char* argv[])
 	struct timeval check;
     struct timeval start;
 	double dif;
+	char tmp[MAX_CHARACTERS];
+	telnet_config_t config;
 
 	/* Get data from config file and initialize */
     get_config("config.conf", &init);
+    telnet_construct(&config);
 	initializeData();
 	buffer_init(&buffer_prior);
 
 	prepare_can();
 	prepare_lin();
 	
-	printf("Data sending starts....\n");
-	
+	/* Prepare CAN and LIN */
+	func(&config, "AT\n");
 
 	gettimeofday(&start,NULL);
 	endwait = addTime(start,init.time * 1000);
@@ -263,6 +266,9 @@ int main(int argc, const char* argv[])
 	dif = getMiliTimeDiff(start, endwait);
 	printf("TIME PASSED %lf\n",dif);
 
+	// Deinitialize variables
+	telnet_deconstruct(&config);
+	
 	pthread_mutex_lock(&mutex);
 	buffer_deinit(&buffer_prior);
 	pthread_mutex_unlock(&mutex);

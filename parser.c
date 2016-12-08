@@ -11,7 +11,9 @@ void get_streams_config(conf_struct_t *file, stream_t *streams)
     
     // Get mode and prepare for message reading.
     fgets(file->tmp, MAX_CHARACTERS, file->conf);
-    puts(file->tmp);
+#ifdef DEBUG_PARSER
+	puts(file->tmp);
+#endif
     
     while (file->tmp[0] == '<')
     {
@@ -30,7 +32,9 @@ void get_streams_config(conf_struct_t *file, stream_t *streams)
             
         // Read messages until another mode is stumbled upon
         fgets(file->tmp, MAX_CHARACTERS, file->conf);
+#ifdef DEBUG_PARSER
         puts(file->tmp);
+#endif
         while (strcmp(file->tmp, "<>") < 0)
         {
             // Time or period
@@ -63,7 +67,9 @@ void get_streams_config(conf_struct_t *file, stream_t *streams)
             
             j++;
             fgets(file->tmp, MAX_CHARACTERS, file->conf);
-            puts(file->tmp);
+#ifdef DEBUG_PARSER
+			puts(file->tmp);
+#endif
         }
 				i++;
     }
@@ -75,7 +81,9 @@ void get_can_config(conf_struct_t *file, init_data_can_t *init_can)
 {    
     // Get baudrate for CAN bus
     fgets(file->tmp, MAX_CHARACTERS, file->conf);
-    puts(file->tmp);
+#ifdef DEBUG_PARSER
+	puts(file->tmp);
+#endif
     file->pch = strtok(file->tmp," ");
     sprintf(file->data, "_%s", file->pch);
     
@@ -115,7 +123,9 @@ void get_lin_config(conf_struct_t *file, init_data_lin_t *init_lin)
 {    
     // Get speed for LIN bus
     fgets(file->tmp, MAX_CHARACTERS, file->conf);
-    puts(file->tmp);
+#ifdef DEBUG_PARSER
+	puts(file->tmp);
+#endif
     file->pch = strtok(file->tmp," \n");
     
     init_lin->speed = atoi(file->pch);
@@ -145,7 +155,9 @@ void get_config(const char *path, init_data_t *init)
     fgets(file.tmp, MAX_CHARACTERS, file.conf);
     while (!end) 
     {
+#ifdef DEBUG_PARSER
         puts(file.tmp);
+#endif
         
         file.tmp[5] = '\0';
         if (strcmp(file.tmp, "[CAN]") == 0)

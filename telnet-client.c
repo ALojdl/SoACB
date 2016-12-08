@@ -117,16 +117,16 @@ void func(telnet_config_t *config, char *command) {
 	
 	len = prepare_command(command, config->buffer);
 	_input(config->buffer, len);
-	
-	if ((config->rs = recv(config->sock, config->buffer, sizeof(config->buffer), 0)) > 0) {
+
+	if ((config->rs = recv(config->sock, config->buffer, sizeof(config->buffer), 0)) > 0) {		
 		telnet_recv(telnet, config->buffer, config->rs);
 	} else if (config->rs == 0) {
 		printf("error");
 	} else {
-		fprintf(stderr, "recv(client) failed: %s\n",
-				strerror(errno));
+		printf("recv(client) failed: %s\n", strerror(errno));
 		exit(1);
 	}
+	
 	return;
 }
 
@@ -164,16 +164,7 @@ int telnet_construct(telnet_config_t *config) {
 
 	/* free address lookup info */
 	freeaddrinfo(config->ai);
-
-	/* get current terminal settings, set raw mode, make sure we
-	 * register atexit handler to restore terminal settings
-	 */
-	tcgetattr(STDOUT_FILENO, &orig_tios);
-	atexit(_cleanup);
-	config->tios = orig_tios;
-	cfmakeraw(&(config->tios));
-	tcsetattr(STDOUT_FILENO, TCSADRAIN, &(config->tios));
-
+	
 	/* set input echoing on by default */
 	do_echo = 1;
 
@@ -186,6 +177,8 @@ int telnet_construct(telnet_config_t *config) {
 	config->pfd[0].events = POLLIN;
 	config->pfd[1].fd = config->sock;
 	config->pfd[1].events = POLLIN;
+	
+	return 1;
 }
 
 int telnet_deconstruct (telnet_config_t * config) {

@@ -131,7 +131,7 @@ void func(telnet_config_t *config, char *command) {
 }
 
 
-int init(telnet_config_t *config) {
+int telnet_construct(telnet_config_t *config) {
 	/* look up server host */
 	memset(&config->hints, 0, sizeof(config->hints));
 	config->hints.ai_family = AF_UNSPEC;
@@ -188,7 +188,7 @@ int init(telnet_config_t *config) {
 	config->pfd[1].events = POLLIN;
 }
 
-int deinit (telnet_config_t * config) {
+int telnet_deconstruct (telnet_config_t * config) {
 	telnet_free(telnet);
 	close(config->sock);
 

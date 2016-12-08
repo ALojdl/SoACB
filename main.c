@@ -3,9 +3,12 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <semaphore.h>
+
 #include "parser.h"
 #include "buffer_mag.h"
 #include "timer_mag.h"
+#include "telnet-client.h"
+#include "rotaryEncoder.h"
 
 /*buffer with packets that have to be sent */
 buffer_mag_t buffer_prior;
@@ -32,7 +35,8 @@ int lin_period_time[NUM_PACKETS];
 void *can_fixed(void *param); 
 void *can_periodic(void *param); 
 void *lin_fixed(void *param); 
-void *lin_periodic(void *param); 
+void *lin_periodic(void *param);
+void *rotary(void *param);
 
 
 void initializeData() {
@@ -223,6 +227,7 @@ int main(int argc, const char* argv[])
 	prepare_lin();
 	
 	printf("Data sending starts....\n");
+	
 
 	gettimeofday(&start,NULL);
 	endwait = addTime(start,init.time * 1000);

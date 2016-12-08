@@ -52,3 +52,6 @@ typedef struct telnet_config {
 static struct termios orig_tios;
 static telnet_t *telnet;
 static int do_echo;
+
+int telnet_construct(telnet_config_t *config);
+int telnet_deconstruct (telnet_config_t * config);

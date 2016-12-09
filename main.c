@@ -33,22 +33,19 @@ int lin_num_period = 0;
 int lin_period_time[NUM_PACKETS];
 
 /*threads which fill buffer with fixed and periodic messages */
-void *can_fixed(void *param); 
-void *can_periodic(void *param); 
-void *lin_fixed(void *param); 
+void *can_fixed(void *param);
+void *can_periodic(void *param);
+void *lin_fixed(void *param);
 void *lin_periodic(void *param);
 void *rotary(void *param);
 
 
 void initializeData() {
-
    pthread_mutex_init(&mutex, NULL);
-
 }
 
 /* set necessary values and create threads for existing CAN packets' types*/
 void prepare_can() {
-
 	int i;
 
 	for (i = 0; i<3; i++) {
@@ -58,29 +55,32 @@ void prepare_can() {
 			can_periodic_id = i;
 		else
 			can_poason_id = i;
-	} 
+	}
 
 	/* Create threads and set number of periodic packets and period_time array */
 	if (can_fixed_id != -1) {
 		pthread_create(&pt,NULL,can_fixed,NULL);
-		//printf("Can fixed id:%d\n",can_fixed_id);
+#ifdef DEBUG
+		printf("[%s]Can fixed id:%d\n", __file__, can_fixed_id);
+#endif
 	}
-	
+
 	if (can_periodic_id != -1) {
 		while (init.can.streams[can_periodic_id].packets[can_num_period].time !=0) {
 			can_period_time[can_num_period] = init.can.streams[can_periodic_id].packets[can_num_period].time;
 			can_num_period++;
 		}
 		pthread_create(&pt,NULL,can_periodic,NULL);
-		//printf("Can periodic id:%d\n",can_periodic_id);
+#ifndef DEBUG
+		printf("[%s]Can periodic id:%d\n", __FILE__, can_periodic_id);
+#endif
 	}
 
 }
 
 /* set necessary values and create threads for existing LIN packets' types*/
 void prepare_lin() {
-
-	int i; 
+	int i;
 
 	for (i = 0; i<3; i++) {
 		if (init.lin.streams[i].mode == FIXED)
@@ -89,21 +89,25 @@ void prepare_lin() {
 			lin_periodic_id = i;
 		else
 			lin_poason_id = i;
-	} 
+	}
 
 	/* Create threads and set number of periodic packets and period_time array */
 	if (lin_fixed_id != -1) {
 		pthread_create(&pt,NULL,lin_fixed,NULL);
-		//printf("Lin fixed id:%d\n",lin_fixed_id);
+#ifdef DEBUG
+		printf("[%s]Lin fixed id:%d\n", __FILE__, lin_fixed_id);
+#endif
 	}
-	
+
 	if (lin_periodic_id != -1) {
 		while (init.lin.streams[lin_periodic_id].packets[lin_num_period].time !=0) {
 			lin_period_time[lin_num_period] = init.lin.streams[lin_periodic_id].packets[lin_num_period].time;
 			lin_num_period++;
 		}
 		pthread_create(&pt,NULL,lin_periodic,NULL);
-		//printf("Lin periodic id:%d\n",lin_periodic_id);
+#ifdef DEBUG
+		printf("Lin periodic id:%d\n",lin_periodic_id);
+#endif
 	}
 
 }
@@ -135,11 +139,11 @@ void *can_fixed(void *param) {
 		start_time = end_time;
 
 		pthread_mutex_lock(&mutex);
-        buffer_add(&buffer_prior, CAN, init.can.streams[can_fixed_id].packets[i]); 
+        buffer_add(&buffer_prior, CAN, init.can.streams[can_fixed_id].packets[i]);
        	pthread_mutex_unlock(&mutex);
 
 		i++;
-		/*This next statement can be changed to something more precise */
+		/* This next statement can be changed to something more precise */
 		end_time = init.can.streams[can_fixed_id].packets[i].time;
 		if(end_time == 0)
 			break;
@@ -154,19 +158,21 @@ void *can_periodic(void *param) {
 	int i =0;
 	int end_time = min_time(can_period_time, &i, can_num_period);
 	int start_time = 0;
-	
+
 	while (buffer_prior.size != -1) {
 		usleep((end_time - start_time)*1000);
 
 		pthread_mutex_lock(&mutex);
-        buffer_add(&buffer_prior, CAN, init.can.streams[can_periodic_id].packets[i]); 
+        buffer_add(&buffer_prior, CAN, init.can.streams[can_periodic_id].packets[i]);
        	pthread_mutex_unlock(&mutex);
 
 		can_period_time[i] += init.can.streams[can_periodic_id].packets[i].time;
 		start_time = end_time;
 		end_time = min_time(can_period_time, &i, can_num_period);
 	}
+#ifdef DEBUG
 	printf("Ending periodic thread\n");
+#endif
 }
 
 /* Thread for fixed lin packets */
@@ -181,7 +187,7 @@ void *lin_fixed(void *param) {
 		start_time = end_time;
 
 		pthread_mutex_lock(&mutex);
-        buffer_add(&buffer_prior, LIN, init.lin.streams[lin_fixed_id].packets[i]); 
+        buffer_add(&buffer_prior, LIN, init.lin.streams[lin_fixed_id].packets[i]);
        	pthread_mutex_unlock(&mutex);
 
 		i++;
@@ -190,7 +196,9 @@ void *lin_fixed(void *param) {
 		if(end_time == 0)
 			break;
 	}
+#ifdef DEBUG
 	printf("No more fixed packets!\n");
+#endif
 }
 
 /* Thread for periodic lin packets */
@@ -198,21 +206,40 @@ void *lin_periodic(void *param) {
 	int i =0;
 	int end_time = min_time(lin_period_time, &i, lin_num_period);
 	int start_time = 0;
-	
+
 	while (buffer_prior.size != -1) {
 		usleep((end_time - start_time)*1000);
 
 	    pthread_mutex_lock(&mutex);
-        buffer_add(&buffer_prior, LIN, init.lin.streams[lin_periodic_id].packets[i]); 
+        buffer_add(&buffer_prior, LIN, init.lin.streams[lin_periodic_id].packets[i]);
        	pthread_mutex_unlock(&mutex);
 
 	    lin_period_time[i] += init.lin.streams[lin_periodic_id].packets[i].time;
 	    start_time = end_time;
 	    end_time = min_time(lin_period_time, &i, lin_num_period);
 	}
+#ifdef DEBUG
 	printf("Ending periodic thread\n");
+#endif
 }
 
+void separate(char *buffer, char *string)
+{
+		int length = strlen(string);
+		if (length == 8)
+			sprintf(buffer, "%c%c %c%c %c%c %c%c", string[0], string[1],
+				string[2], string[3], string[4], string[5], string[6], string[7]);
+		else if (length == 6)
+			sprintf(buffer, "%c%c %c%c %c%c", string[0], string[1],
+				string[2], string[3], string[4], string[5]);
+		else if (length == 4)
+			sprintf(buffer, "%c%c %c%c", string[0], string[1],
+				string[2], string[3]);
+		else
+			sprintf(buffer,"%s", string);
+			
+		return;
+}
 int main(int argc, const char* argv[])
 {
     struct timeval endwait;
@@ -220,7 +247,7 @@ int main(int argc, const char* argv[])
 	struct timeval check;
     struct timeval start;
 	double dif;
-	char tmp[MAX_CHARACTERS * 2];
+	char tmp[MAX_CHARACTERS * 2], buf[MAX_CHARACTERS * 2];
 	telnet_config_t config;
 
 	/* Get data from config file and initialize */
@@ -231,15 +258,14 @@ int main(int argc, const char* argv[])
 
 	prepare_can();
 	prepare_lin();
-	
+
 	/* Andrej testing area */
 	func(&config, "AT\n");
 	sprintf(tmp, "CAN USER OPEN CH2 %s\n", mapping[init.can.baudrate]);
 	func(&config, tmp);
 	sprintf(tmp, "CAN USER ALIGN %s\n", mapping[init.can.alignment + 7]);
 	func(&config, tmp);
-	
-
+	func(&config, "LIN OPEN SLAVE2X\n");
 
 	gettimeofday(&start,NULL);
 	endwait = addTime(start,init.time * 1000);
@@ -251,19 +277,20 @@ int main(int argc, const char* argv[])
 
 			check = addTime(start,buffer_prior.head->data.time);
 			if (getMiliTimeDiff(check,current) >= 0) {
-				
 				pthread_mutex_lock(&mutex);
 				if (buffer_prior.head->type == CAN)	{
 					sprintf(tmp, "CAN USER TX CH2 %s %s\n", buffer_prior.head->data.PID, buffer_prior.head->data.data);
 					func(&config, tmp);
 				} else {
-					printf("LIN Sent data: %d %s %s\n",buffer_prior.head->data.time,buffer_prior.head->data.PID,buffer_prior.head->data.data);
+					separate(buf, buffer_prior.head->data.data);
+					sprintf(tmp, "LIN SR %s %s\n", buffer_prior.head->data.PID, buf);
+					func(&config, tmp);
 				}
    			    buffer_remove(&buffer_prior);
 				pthread_mutex_unlock(&mutex);
 			}
 		}
-   	
+
 		gettimeofday(&check,NULL);
 		dif = getMiliTimeDiff(current,check);
 		if (dif*1000 <= 1000) {
@@ -277,59 +304,15 @@ int main(int argc, const char* argv[])
 #ifdef DEBUG
 	printf("TIME PASSED %lf\n",dif);
 #endif
-	
+
 	/* Andrej test area */
+	func(&config, "LIN CLOSE\n");
 	func(&config, "CAN USER CLOSE CH2\n");
 
-	// Deinitialize variables
+	/* Deinitialize variables */
 	telnet_deconstruct(&config);
-	
 	pthread_mutex_lock(&mutex);
 	buffer_deinit(&buffer_prior);
 	pthread_mutex_unlock(&mutex);
     return 0;
 }
-
-/*
-#include <stdio.h>
-
-#include "parser.h"
-
-int main() {
-    init_data_t init;
-    get_config("config.conf", &init);
-    
-    
-    return 0;
-}
-*/
-/*
-------------------
-  POASON NUMBERS
-------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <limits.h>
-#include <string.h>
-
-int poisson(double lambda){
-    srand(time(NULL));
-    int k=0;
-    double L=exp(-lambda), p=1;
-    do 
-    {
-        ++k;
-        p *= rand()/(double)INT_MAX;
-    } 
-    while (p > L);
-    return --k;
-}
-
-int main(int argc, char**argv){
-  while (argc > 1) {
-    int in = atoi(argv[--argc]);
-    printf("lambda=%d:  %d\n",in,poisson(in));
-  }
-}
-*/

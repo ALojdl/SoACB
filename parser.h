@@ -27,7 +27,7 @@ typedef enum baudrate {
 } baudrate_t;
 
 typedef enum modes {
-    FIXED,
+    FIXED = 1,
     PERIODIC,
     POASON
 } modes_t;

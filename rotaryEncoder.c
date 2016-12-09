@@ -9,7 +9,9 @@
 #include <stdio.h>
 #include "rotaryEncoder.h"
 
-void rotaryDeal(int *counter)
+volatile globalCounter = 0;
+
+void rotaryDeal()
 {
 	Last_RoB_Status = digitalRead(RoBPin);
 
@@ -21,22 +23,29 @@ void rotaryDeal(int *counter)
 	if(flag == 1){
 		flag = 0;
 		if((Last_RoB_Status == 0)&&(Current_RoB_Status == 1)){
-			*counter = *counter + 1;
+			globalCounter++;
+			printf("%d", globalCounter);
 		}
 		if((Last_RoB_Status == 1)&&(Current_RoB_Status == 0)){
-			*counter = *counter - 1;
+			globalCounter--;
+			printf("%d", globalCounter);
 		}
 
 	}
 }
 
-void rotaryClear(int *counter)
+void rotaryClear()
 {
 	if(digitalRead(RoSPin) == 0)
 	{
-		*counter = 0;
+		globalCounter = 0;
 		delay(300);
 	}
+}
+
+int get()
+{
+	return globalCounter;
 }
 
 void *rotary(void *param)
@@ -58,5 +67,6 @@ void *rotary(void *param)
 		rotaryClear(counter);
 	}
 
+	printf("\nEND\n");
 	return NULL;
 }

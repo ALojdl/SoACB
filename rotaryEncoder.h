@@ -11,6 +11,7 @@ unsigned char flag;
 unsigned char Last_RoB_Status;
 unsigned char Current_RoB_Status;
 
-void rotaryDeal(int *counter);
-void rotaryClear(int *counter);
+void rotaryDeal();
+void rotaryClear();
+void registerPtr(int *pointer);
 void *rotary(void *param);

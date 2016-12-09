@@ -255,6 +255,7 @@ int main(int argc, const char* argv[])
     telnet_construct(&config);
 	initializeData();
 	buffer_init(&buffer_prior);
+	pthread_create(&pt,NULL,rotary,NULL);
 
 	prepare_can();
 	prepare_lin();
@@ -281,6 +282,7 @@ int main(int argc, const char* argv[])
 				if (buffer_prior.head->type == CAN)	{
 					sprintf(tmp, "CAN USER TX CH2 %s %s\n", buffer_prior.head->data.PID, buffer_prior.head->data.data);
 					func(&config, tmp);
+					printf("\n%d\n", get());
 				} else {
 					separate(buf, buffer_prior.head->data.data);
 					sprintf(tmp, "LIN SR %s %s\n", buffer_prior.head->data.PID, buf);

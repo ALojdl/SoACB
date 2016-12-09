@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
+#include <limits.h>
 #include "timer_mag.h"
 
 double getMiliTimeDiff(struct timeval t_start, struct timeval t_end)
@@ -39,4 +41,16 @@ struct timeval addTime(struct timeval t_time, int mili_time)
 	}
 	sum.tv_usec += mili_time*1000;
 	return sum;
+}
+
+int poason(double lambda) {
+    int k=0;
+    double L=exp(-lambda), p=1;
+    do 
+    {
+        ++k;
+        p *= rand()/(double)INT_MAX;
+    } 
+    while (p > L);
+    return --k;
 }

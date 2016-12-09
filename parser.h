@@ -1,11 +1,15 @@
 #ifndef _PARSER_H
 #define _PARSER_H
 
-#define MAX_CHARACTERS 32
+#define MAX_CHARACTERS 64
 #define NUM_STREAMS 3
 #define NUM_PACKETS 32
 #define DATA_SIZE 9
-//#define DEBUG_PARSER
+
+static char mapping[9][MAX_CHARACTERS] = {
+	"500K", "250K", "125K", "100K", 
+	"95K2", "83K3", "50K", "LEFT", "RIGHT"
+};
 
 typedef enum alignment {
     LEFT,

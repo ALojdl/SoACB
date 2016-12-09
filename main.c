@@ -10,6 +10,7 @@
 #include "telnet-client.h"
 #include "rotaryEncoder.h"
 
+static volatile int globalCounter = 0 ;
 /*buffer with packets that have to be sent */
 buffer_mag_t buffer_prior;
 /* data parsed from config.conf */
@@ -143,7 +144,9 @@ void *can_fixed(void *param) {
 		if(end_time == 0)
 			break;
 	}
+#ifdef DEBUG
 	printf("No more fixed packets!\n");
+#endif
 }
 
 /* Thread for periodic can packets */
@@ -217,7 +220,7 @@ int main(int argc, const char* argv[])
 	struct timeval check;
     struct timeval start;
 	double dif;
-	char tmp[MAX_CHARACTERS];
+	char tmp[MAX_CHARACTERS * 2];
 	telnet_config_t config;
 
 	/* Get data from config file and initialize */
@@ -229,8 +232,14 @@ int main(int argc, const char* argv[])
 	prepare_can();
 	prepare_lin();
 	
-	/* Prepare CAN and LIN */
+	/* Andrej testing area */
 	func(&config, "AT\n");
+	sprintf(tmp, "CAN USER OPEN CH2 %s\n", mapping[init.can.baudrate]);
+	func(&config, tmp);
+	sprintf(tmp, "CAN USER ALIGN %s\n", mapping[init.can.alignment + 7]);
+	func(&config, tmp);
+	
+
 
 	gettimeofday(&start,NULL);
 	endwait = addTime(start,init.time * 1000);
@@ -242,10 +251,11 @@ int main(int argc, const char* argv[])
 
 			check = addTime(start,buffer_prior.head->data.time);
 			if (getMiliTimeDiff(check,current) >= 0) {
-
+				
 				pthread_mutex_lock(&mutex);
 				if (buffer_prior.head->type == CAN)	{
-					printf("CAN Sent data: %d %s %s\n",buffer_prior.head->data.time,buffer_prior.head->data.PID,buffer_prior.head->data.data);
+					sprintf(tmp, "CAN USER TX CH2 %s %s\n", buffer_prior.head->data.PID, buffer_prior.head->data.data);
+					func(&config, tmp);
 				} else {
 					printf("LIN Sent data: %d %s %s\n",buffer_prior.head->data.time,buffer_prior.head->data.PID,buffer_prior.head->data.data);
 				}
@@ -264,7 +274,12 @@ int main(int argc, const char* argv[])
 
 	gettimeofday(&endwait,NULL);
 	dif = getMiliTimeDiff(start, endwait);
+#ifdef DEBUG
 	printf("TIME PASSED %lf\n",dif);
+#endif
+	
+	/* Andrej test area */
+	func(&config, "CAN USER CLOSE CH2\n");
 
 	// Deinitialize variables
 	telnet_deconstruct(&config);

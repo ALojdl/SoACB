@@ -240,6 +240,12 @@ void separate(char *buffer, char *string)
 			
 		return;
 }
+
+void convert(char *buffer, int number)
+{
+	int result = number + 50;
+	sprintf(buffer, "%04x", result);
+}
 int main(int argc, const char* argv[])
 {
     struct timeval endwait;
@@ -282,11 +288,17 @@ int main(int argc, const char* argv[])
 				if (buffer_prior.head->type == CAN)	{
 					sprintf(tmp, "CAN USER TX CH2 %s %s\n", buffer_prior.head->data.PID, buffer_prior.head->data.data);
 					func(&config, tmp);
-					printf("\n%d\n", get());
 				} else {
-					separate(buf, buffer_prior.head->data.data);
-					sprintf(tmp, "LIN SR %s %s\n", buffer_prior.head->data.PID, buf);
-					func(&config, tmp);
+					if (strcmp(buffer_prior.head->data.PID, "21") != 0) {
+						separate(buf, buffer_prior.head->data.data);
+						sprintf(tmp, "LIN SR %s %s\n", buffer_prior.head->data.PID, buf);
+						func(&config, tmp);
+					} else {
+						convert(buf, get());
+						separate(buf, buf);
+						sprintf(tmp, "LIN SR %s %s\n", buffer_prior.head->data.PID, buf); 
+						func(&config, tmp);
+					}
 				}
    			    buffer_remove(&buffer_prior);
 				pthread_mutex_unlock(&mutex);

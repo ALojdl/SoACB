@@ -1,3 +1,25 @@
+/****************************************************************************
+*
+* Univerzitet u Novom Sadu, Fakultet tehnickih nauka
+* Katedra za Racunarsku Tehniku i Racunarske Komunikacije
+*
+* -----------------------------------------------------
+* Ispitni projekat iz predmeta:
+*
+* RACUNARSKE MREZE, MAGISTRALE I PROTOKOLI U AUTOMOBILU
+* -----------------------------------------------------
+* Naslov zadatka: Emulacija sistema komunikacije automobilskih  magistrala
+* -----------------------------------------------------*
+* \file buffer_mag.c
+* \brief
+* Opis Modula : Realizacija funkcija za rukovanje dinamickim FIFO baferom
+* Kreirano : Decembar 2016
+*
+* @Author Andrej Lojdl, Nives Kaprocki
+* \notes
+*
+*****************************************************************************/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "parser.h"
@@ -23,6 +45,7 @@ void buffer_deinit(buffer_mag_t *buffer)	{
 	buffer->head = NULL;
 	buffer->size--;
 }
+
 void buffer_add(buffer_mag_t *buffer, bus_type_t type, packets_t packet) {
 
 	struct node *current = buffer->head;

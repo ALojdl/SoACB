@@ -1,3 +1,25 @@
+/****************************************************************************
+*
+* Univerzitet u Novom Sadu, Fakultet tehnickih nauka
+* Katedra za Racunarsku Tehniku i Racunarske Komunikacije
+*
+* -----------------------------------------------------
+* Ispitni projekat iz predmeta:
+*
+* RACUNARSKE MREZE, MAGISTRALE I PROTOKOLI U AUTOMOBILU
+* -----------------------------------------------------
+* Naslov zadatka: Emulacija sistema komunikacije automobilskih  magistrala
+* -----------------------------------------------------*
+* \file main.c
+* \brief
+* Opis Modula : Glavna aplikacija koja iscitava konfiguracionu datoteku i salje pakete na magistrale
+* Kreirano : Decembar 2016
+*
+* @Author Andrej Lojdl, Nives Kaprocki
+* \notes
+*
+*****************************************************************************/
+
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -10,15 +32,16 @@
 #include "telnet-client.h"
 #include "rotaryEncoder.h"
 
-static volatile int globalCounter = 0 ;
 /*buffer with packets that have to be sent */
 buffer_mag_t buffer_prior;
 /* data parsed from config.conf */
 init_data_t init;
 
+/* mutex for the shared buffer */
 pthread_mutex_t mutex;
 pthread_t pt;
 
+/* flags presenting whether there are packets in a specific stream */
 int can_fixed_id = -1;
 int can_periodic_id = -1;
 int can_poason_id = -1;
@@ -26,9 +49,10 @@ int lin_fixed_id = -1;
 int lin_periodic_id = -1;
 int lin_poason_id = -1;
 
+/* flag presenting whether there are packets in any streams */
 int packets_exist = 0;
 
-/*number of periodic packets and next time when periodic packets have to be sent*/
+/* number of periodic packets and list of next points in time when periodic and poason packets have to be sent */
 int can_num_period = 0;
 int can_period_time[NUM_PACKETS];
 int can_num_poason = 0;
@@ -38,7 +62,7 @@ int lin_period_time[NUM_PACKETS];
 int lin_num_poason = 0;
 int lin_poason_time[NUM_PACKETS];
 
-/*threads which fill buffer with fixed and periodic messages */
+/* threads which fill buffer with fixed, periodic and poason packets */
 void *can_fixed(void *param);
 void *can_periodic(void *param);
 void *can_poason(void *param);
@@ -47,7 +71,13 @@ void *lin_periodic(void *param);
 void *lin_poason(void *param);
 void *rotary(void *param);
 
-/* set necessary values and create threads for existing CAN packets' types*/
+/**
+ * @brief  set necessary values and create threads for existing CAN packets' types
+ *
+ * @param  [in]		
+ * @param  [out]  
+ * @return 
+ */
 void prepare_can() {
 	int i;
 	
@@ -92,7 +122,13 @@ void prepare_can() {
 
 }
 
-/* set necessary values and create threads for existing LIN packets' types*/
+/**
+ * @brief  set necessary values and create threads for existing LIN packets' types
+ *
+ * @param  [in]		
+ * @param  [out]  
+ * @return 
+ */
 void prepare_lin() {
 	int i;
 	
@@ -135,21 +171,6 @@ void prepare_lin() {
 		pthread_create(&pt,NULL,lin_poason,NULL);
 	}
 
-}
-
-/* Returns time of periodic packet which is next to be sent to the bus*/
-int min_time(int* p_time, int* num, int count) {
-	int i;
-	int min = p_time[0];
-	*num = 0;
-	for (i=1; i <count;i++) {
-
-		if (p_time[i] < min) {
-			min = p_time[i];
-			*num = i;
-		}
-	}
-	return min;
 }
 
 /* Thread for fixed can packets */
@@ -290,6 +311,14 @@ void *lin_poason(void *param) {
 	printf("Ending poason thread\n");
 }
 
+/**
+ * @brief  parse data from lin buffer 
+ *
+ * @param  [in]	    char *buffer - parsed lin data	
+ *                  char *string - non parsed lin data
+ * @param  [out]  
+ * @return 
+ */
 void separate(char *buffer, char *string)
 {
 		int length = strlen(string);
@@ -308,11 +337,20 @@ void separate(char *buffer, char *string)
 		return;
 }
 
+/**
+ * @brief  adds 50 and converts number to hex string 
+ *
+ * @param  [in]	    char *buffer - string representation of hex number 	
+ *                  int number - integer representation of a decimal number
+ * @param  [out]  
+ * @return 
+ */
 void convert(char *buffer, int number)
 {
 	int result = number + 50;
 	sprintf(buffer, "%04x", result);
 }
+
 int main(int argc, const char* argv[])
 {
    	struct timeval endwait;
@@ -324,8 +362,8 @@ int main(int argc, const char* argv[])
 	telnet_config_t config;
 
 	/* Get data from config file and initialize */
-    	get_config("config.conf", &init);
-    	telnet_construct(&config);
+    get_config("config.conf", &init);
+    telnet_construct(&config);
 	pthread_mutex_init(&mutex, NULL);
 	buffer_init(&buffer_prior);
 	pthread_create(&pt,NULL,rotary,NULL);

@@ -38,6 +38,9 @@
 
 #include "libtelnet.h"
 
+/**
+ * @brief Structure needed for telnet initialization
+ */
 typedef struct telnet_config {
 	char buffer[512];
 	int rs;
@@ -53,5 +56,22 @@ static struct termios orig_tios;
 static telnet_t *telnet;
 static int do_echo;
 
+/**
+ * @brief  initialize telnet client
+ *
+ * @param  [in]   telnet_config_t *config - structure filled with necessary data
+
+ * @param  [out]  
+ * @return         
+ */
 int telnet_construct(telnet_config_t *config);
+
+/**
+ * @brief  deinitialize telnet client
+ *
+ * @param  [in]   telnet_config_t *config - structure filled with necessary data
+
+ * @param  [out]  
+ * @return         
+ */
 int telnet_deconstruct (telnet_config_t * config);

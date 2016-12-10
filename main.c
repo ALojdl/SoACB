@@ -356,7 +356,7 @@ int main(int argc, const char* argv[])
 					sprintf(tmp, "CAN USER TX CH2 %s %s\n", buffer_prior.head->data.PID, buffer_prior.head->data.data);
 					func(&config, tmp);
 				} else {
-					if (strcmp(buffer_prior.head->data.PID, "21") != 0) {
+					if (strcmp(buffer_prior.head->data.PID, init.lin.magic) != 0) {
 						separate(buf, buffer_prior.head->data.data);
 						sprintf(tmp, "LIN SR %s %s\n", buffer_prior.head->data.PID, buf);
 						func(&config, tmp);

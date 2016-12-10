@@ -59,6 +59,7 @@ typedef struct init_data_can {
 
 typedef struct init_data_lin {
     int speed;
+    char magic[8];
     stream_t streams[NUM_STREAMS];
 } init_data_lin_t;
 

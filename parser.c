@@ -31,7 +31,7 @@ void get_streams_config(conf_struct_t *file, stream_t *streams)
     int j, i = 0;
     char *ptr;
     
-    // Get mode and prepare for message reading.
+    /* Get mode and prepare for message reading */
     fgets(file->tmp, MAX_CHARACTERS, file->conf);
 #ifdef DEBUG_PARSER
 	puts(file->tmp);
@@ -52,14 +52,23 @@ void get_streams_config(conf_struct_t *file, stream_t *streams)
         else
             printf("%s\tERROR -> No valid stream type in setup!\n", __func__);
             
-        // Read messages until another mode is stumbled upon
+        /* Read messages until another mode is stumbled upon */
         fgets(file->tmp, MAX_CHARACTERS, file->conf);
 #ifdef DEBUG_PARSER
         puts(file->tmp);
 #endif
         while (strcmp(file->tmp, "<>") < 0)
         {
-            // Time or period
+			/* If there is more then 32 messages ignore them */
+			if (j == NUM_PACKETS - 2)
+			{
+				while (strcmp(file->tmp, "<>") > 0)
+				{
+						fgets(file->tmp, MAX_CHARACTERS, file->conf);
+				}
+			}
+				
+            /* Time or period */
             file->pch = strtok(file->tmp, " \n");
             if (file->pch == NULL)
             {
@@ -69,7 +78,7 @@ void get_streams_config(conf_struct_t *file, stream_t *streams)
             number = atoi(file->pch);
             streams[i].packets[j].time = number;
             
-            // Identification section
+            /* Identification section */
             file->pch = strtok(NULL, " \n");
             if (file->pch == NULL)
             {
@@ -78,7 +87,7 @@ void get_streams_config(conf_struct_t *file, stream_t *streams)
             }
             strcpy(streams[i].packets[j].PID, file->pch);
             
-            // Data section
+            /* Data section */
             file->pch = strtok(NULL, " \n");
             if (file->pch == NULL)
             {
@@ -101,7 +110,7 @@ void get_streams_config(conf_struct_t *file, stream_t *streams)
 
 void get_can_config(conf_struct_t *file, init_data_can_t *init_can)
 {    
-    // Get baudrate for CAN bus
+    /* Get baudrate for CAN bus */
     fgets(file->tmp, MAX_CHARACTERS, file->conf);
 #ifdef DEBUG_PARSER
 	puts(file->tmp);
@@ -126,7 +135,7 @@ void get_can_config(conf_struct_t *file, init_data_can_t *init_can)
     else 
         printf("%s\tERROR -> No valid baudrate in CAN setup!\n", __func__);
     
-    // Get alignment for CAN bus
+    /* Get alignment for CAN bus */
     file->pch = strtok(NULL," \n");
     sprintf(file->data, "%s", file->pch);
     
@@ -143,7 +152,7 @@ void get_can_config(conf_struct_t *file, init_data_can_t *init_can)
 
 void get_lin_config(conf_struct_t *file, init_data_lin_t *init_lin)
 {    
-    // Get speed for LIN bus
+    /* Get speed for LIN bus */
     fgets(file->tmp, MAX_CHARACTERS, file->conf);
 #ifdef DEBUG_PARSER
 	puts(file->tmp);
@@ -154,7 +163,11 @@ void get_lin_config(conf_struct_t *file, init_data_lin_t *init_lin)
     
     if (init_lin->speed > 20000 || init_lin->speed < 1000)
         printf("%s\tERROR -> No valid speed in LIN setup!\n", __func__);
-    
+        
+    /* Get magic number */
+    file->pch = strtok(NULL, " \n");
+    strcpy(init_lin->magic, file->pch);
+
     get_streams_config(file, init_lin->streams);
     return;
 }
@@ -164,7 +177,7 @@ void get_config(const char *path, init_data_t *init)
     conf_struct_t file;
     int end = 0;
     
-    // Open configuration file, return error if there is problem
+    /* Open configuration file, return error if there is problem */
     file.conf = fopen(path, "r");
     if(file.conf == NULL)
     {
@@ -173,7 +186,7 @@ void get_config(const char *path, init_data_t *init)
         return;
     }
     
-    // Read lines and delegate configuration process to subfunctions
+    /* Read lines and delegate configuration process to subfunctions */
     fgets(file.tmp, MAX_CHARACTERS, file.conf);
     while (!end) 
     {
@@ -199,7 +212,7 @@ void get_config(const char *path, init_data_t *init)
         }
     }
     
-    // Close file and end function
+    /* Close file and end function */
     fclose(file.conf);    
     return;
 }

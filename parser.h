@@ -25,10 +25,18 @@
 #ifndef _PARSER_H
 #define _PARSER_H
 
+<<<<<<< HEAD
 #define MAX_CHARACTERS 64       /* Maximal characters in buffer */
 #define NUM_STREAMS 3           /* Maximal number of streams (fixed, periodic, poason) */
 #define NUM_PACKETS 32          /* Maximal number of packets in a stream that can be listed inside the config file */
 #define DATA_SIZE 9             /* Number od bits that can be sent to the bus - 1 */
+=======
+#define MAX_CHARACTERS 64
+#define NUM_STREAMS 3
+#define NUM_PACKETS 32
+#define DATA_SIZE 9
+#define DEBUG_PARSER
+>>>>>>> a07728a07cd17ff199a671a790426c1da7d7a1ec
 
 /**
  * @brief Mapping from enum values to string 
@@ -109,6 +117,7 @@ typedef struct init_data_can {
  */
 typedef struct init_data_lin {
     int speed;
+    char magic[8];
     stream_t streams[NUM_STREAMS];
 } init_data_lin_t;
 

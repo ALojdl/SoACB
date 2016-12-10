@@ -26,39 +26,43 @@ int lin_fixed_id = -1;
 int lin_periodic_id = -1;
 int lin_poason_id = -1;
 
+int packets_exist = 0;
+
 /*number of periodic packets and next time when periodic packets have to be sent*/
 int can_num_period = 0;
 int can_period_time[NUM_PACKETS];
+int can_num_poason = 0;
+int can_poason_time[NUM_PACKETS];
 int lin_num_period = 0;
 int lin_period_time[NUM_PACKETS];
+int lin_num_poason = 0;
+int lin_poason_time[NUM_PACKETS];
 
 /*threads which fill buffer with fixed and periodic messages */
 void *can_fixed(void *param);
 void *can_periodic(void *param);
+void *can_poason(void *param);
 void *lin_fixed(void *param);
 void *lin_periodic(void *param);
+void *lin_poason(void *param);
 void *rotary(void *param);
-
-
-void initializeData() {
-   pthread_mutex_init(&mutex, NULL);
-}
 
 /* set necessary values and create threads for existing CAN packets' types*/
 void prepare_can() {
 	int i;
-
-	for (i = 0; i<3; i++) {
+	
+	for (i = 0; i< NUM_STREAMS; i++) {
 		if (init.can.streams[i].mode == FIXED)
 			can_fixed_id = i;
 		else if (init.can.streams[i].mode == PERIODIC)
 			can_periodic_id = i;
-		else
+		else if (init.can.streams[i].mode == POASON)
 			can_poason_id = i;
-	}
+	} 
 
 	/* Create threads and set number of periodic packets and period_time array */
 	if (can_fixed_id != -1) {
+		packets_exist = 1;
 		pthread_create(&pt,NULL,can_fixed,NULL);
 #ifdef DEBUG
 		printf("[%s]Can fixed id:%d\n", __file__, can_fixed_id);
@@ -66,6 +70,7 @@ void prepare_can() {
 	}
 
 	if (can_periodic_id != -1) {
+		packets_exist = 1;
 		while (init.can.streams[can_periodic_id].packets[can_num_period].time !=0) {
 			can_period_time[can_num_period] = init.can.streams[can_periodic_id].packets[can_num_period].time;
 			can_num_period++;
@@ -75,24 +80,34 @@ void prepare_can() {
 		printf("[%s]Can periodic id:%d\n", __FILE__, can_periodic_id);
 #endif
 	}
+	
+	if (can_poason_id != -1) {
+        	packets_exist = 1;
+		while (init.can.streams[can_poason_id].packets[can_num_poason].time !=0) {
+			can_poason_time[can_num_poason] = poason(init.can.streams[can_poason_id].packets[can_num_poason].time);
+			can_num_poason++;
+		}
+		pthread_create(&pt,NULL,can_poason,NULL);
+	}
 
 }
 
 /* set necessary values and create threads for existing LIN packets' types*/
 void prepare_lin() {
 	int i;
-
-	for (i = 0; i<3; i++) {
+	
+	for (i = 0; i< NUM_STREAMS; i++) {
 		if (init.lin.streams[i].mode == FIXED)
 			lin_fixed_id = i;
 		else if (init.lin.streams[i].mode == PERIODIC)
 			lin_periodic_id = i;
-		else
+		else if (init.can.streams[i].mode == POASON)
 			lin_poason_id = i;
-	}
+	} 
 
 	/* Create threads and set number of periodic packets and period_time array */
 	if (lin_fixed_id != -1) {
+		packets_exist = 1;
 		pthread_create(&pt,NULL,lin_fixed,NULL);
 #ifdef DEBUG
 		printf("[%s]Lin fixed id:%d\n", __FILE__, lin_fixed_id);
@@ -100,6 +115,7 @@ void prepare_lin() {
 	}
 
 	if (lin_periodic_id != -1) {
+		packets_exist = 1;
 		while (init.lin.streams[lin_periodic_id].packets[lin_num_period].time !=0) {
 			lin_period_time[lin_num_period] = init.lin.streams[lin_periodic_id].packets[lin_num_period].time;
 			lin_num_period++;
@@ -108,6 +124,15 @@ void prepare_lin() {
 #ifdef DEBUG
 		printf("Lin periodic id:%d\n",lin_periodic_id);
 #endif
+	}
+	
+	if (lin_poason_id != -1) {
+        	packets_exist = 1;
+		while (init.lin.streams[lin_poason_id].packets[lin_num_poason].time !=0) {
+			lin_poason_time[lin_num_poason] = poason(init.lin.streams[lin_poason_id].packets[lin_num_poason].time);
+			lin_num_poason++;
+		}
+		pthread_create(&pt,NULL,lin_poason,NULL);
 	}
 
 }
@@ -135,12 +160,12 @@ void *can_fixed(void *param) {
 
 	while (buffer_prior.size != -1) {
 
-		usleep((end_time-start_time)*1000);
+		usleep((end_time-start_time)*MILI_TO_MICRO);
 		start_time = end_time;
 
 		pthread_mutex_lock(&mutex);
-        buffer_add(&buffer_prior, CAN, init.can.streams[can_fixed_id].packets[i]);
-       	pthread_mutex_unlock(&mutex);
+        	buffer_add(&buffer_prior, CAN, init.can.streams[can_fixed_id].packets[i]);
+       		pthread_mutex_unlock(&mutex);
 
 		i++;
 		/* This next statement can be changed to something more precise */
@@ -160,11 +185,11 @@ void *can_periodic(void *param) {
 	int start_time = 0;
 
 	while (buffer_prior.size != -1) {
-		usleep((end_time - start_time)*1000);
+		usleep((end_time - start_time)*MILI_TO_MICRO);
 
 		pthread_mutex_lock(&mutex);
-        buffer_add(&buffer_prior, CAN, init.can.streams[can_periodic_id].packets[i]);
-       	pthread_mutex_unlock(&mutex);
+        	buffer_add(&buffer_prior, CAN, init.can.streams[can_periodic_id].packets[i]);
+		pthread_mutex_unlock(&mutex);
 
 		can_period_time[i] += init.can.streams[can_periodic_id].packets[i].time;
 		start_time = end_time;
@@ -175,6 +200,27 @@ void *can_periodic(void *param) {
 #endif
 }
 
+/* Thread for poason can packets */
+void *can_poason(void *param) {
+	int i =0;
+	int end_time = min_time(can_poason_time, &i, can_num_poason);
+	int start_time = 0;
+	
+   	printf("Starting can poason thread!\n");
+	while (buffer_prior.size != -1) {
+		usleep((end_time - start_time)*MILI_TO_MICRO);
+
+		pthread_mutex_lock(&mutex);
+        	buffer_add(&buffer_prior, CAN, init.can.streams[can_poason_id].packets[i]); 
+   	    	pthread_mutex_unlock(&mutex);
+
+		can_poason_time[i] += poason(init.can.streams[can_poason_id].packets[i].time);
+		start_time = end_time;
+		end_time = min_time(can_poason_time, &i, can_num_poason);
+	}
+	printf("Ending poason thread\n");
+}
+
 /* Thread for fixed lin packets */
 void *lin_fixed(void *param) {
     int i = 0;
@@ -183,12 +229,12 @@ void *lin_fixed(void *param) {
 
 	while (buffer_prior.size != -1) {
 
-		usleep((end_time-start_time)*1000);
+		usleep((end_time-start_time)*MILI_TO_MICRO);
 		start_time = end_time;
 
 		pthread_mutex_lock(&mutex);
-        buffer_add(&buffer_prior, LIN, init.lin.streams[lin_fixed_id].packets[i]);
-       	pthread_mutex_unlock(&mutex);
+        	buffer_add(&buffer_prior, LIN, init.lin.streams[lin_fixed_id].packets[i]);
+       		pthread_mutex_unlock(&mutex);
 
 		i++;
 		/*This next statement can be changed to something more precise */
@@ -208,19 +254,40 @@ void *lin_periodic(void *param) {
 	int start_time = 0;
 
 	while (buffer_prior.size != -1) {
-		usleep((end_time - start_time)*1000);
+		usleep((end_time - start_time)*MILI_TO_MICRO);
 
-	    pthread_mutex_lock(&mutex);
-        buffer_add(&buffer_prior, LIN, init.lin.streams[lin_periodic_id].packets[i]);
-       	pthread_mutex_unlock(&mutex);
+		pthread_mutex_lock(&mutex);
+        	buffer_add(&buffer_prior, LIN, init.lin.streams[lin_periodic_id].packets[i]);
+       		pthread_mutex_unlock(&mutex);
 
-	    lin_period_time[i] += init.lin.streams[lin_periodic_id].packets[i].time;
-	    start_time = end_time;
-	    end_time = min_time(lin_period_time, &i, lin_num_period);
+	    	lin_period_time[i] += init.lin.streams[lin_periodic_id].packets[i].time;
+		start_time = end_time;
+	    	end_time = min_time(lin_period_time, &i, lin_num_period);
 	}
 #ifdef DEBUG
 	printf("Ending periodic thread\n");
 #endif
+}
+
+/* Thread for poason lin packets */
+void *lin_poason(void *param) {
+	int i =0;
+	int end_time = min_time(lin_poason_time, &i, lin_num_poason);
+	int start_time = 0;
+	
+    printf("Starting lin poason thread!\n");
+	while (buffer_prior.size != -1) {
+		usleep((end_time - start_time)*MILI_TO_MICRO);
+
+		pthread_mutex_lock(&mutex);
+        buffer_add(&buffer_prior, LIN, init.lin.streams[lin_poason_id].packets[i]); 
+   	    pthread_mutex_unlock(&mutex);
+
+		lin_poason_time[i] += poason(init.lin.streams[lin_poason_id].packets[i].time);
+		start_time = end_time;
+		end_time = min_time(lin_poason_time, &i, lin_num_poason);
+	}
+	printf("Ending poason thread\n");
 }
 
 void separate(char *buffer, char *string)
@@ -248,18 +315,18 @@ void convert(char *buffer, int number)
 }
 int main(int argc, const char* argv[])
 {
-    struct timeval endwait;
+   	struct timeval endwait;
 	struct timeval current;
 	struct timeval check;
-    struct timeval start;
+   	struct timeval start;
 	double dif;
 	char tmp[MAX_CHARACTERS * 2], buf[MAX_CHARACTERS * 2];
 	telnet_config_t config;
 
 	/* Get data from config file and initialize */
-    get_config("config.conf", &init);
-    telnet_construct(&config);
-	initializeData();
+    	get_config("config.conf", &init);
+    	telnet_construct(&config);
+	pthread_mutex_init(&mutex, NULL);
 	buffer_init(&buffer_prior);
 	pthread_create(&pt,NULL,rotary,NULL);
 
@@ -275,10 +342,10 @@ int main(int argc, const char* argv[])
 	func(&config, "LIN OPEN SLAVE2X\n");
 
 	gettimeofday(&start,NULL);
-	endwait = addTime(start,init.time * 1000);
+	endwait = addTime(start,init.time * SEC_TO_MILI);
 	gettimeofday(&current,NULL);
 
-	while (getMiliTimeDiff(current, endwait) > 0) {
+	while (packets_exist & getMiliTimeDiff(current, endwait) > 0) {
 
 		if (buffer_prior.size > 0) {
 
@@ -300,15 +367,15 @@ int main(int argc, const char* argv[])
 						func(&config, tmp);
 					}
 				}
-   			    buffer_remove(&buffer_prior);
+   			    	buffer_remove(&buffer_prior);
 				pthread_mutex_unlock(&mutex);
 			}
 		}
 
 		gettimeofday(&check,NULL);
 		dif = getMiliTimeDiff(current,check);
-		if (dif*1000 <= 1000) {
-			usleep(dif*1000);
+		if (dif*MILI_TO_MICRO <= MILI_TO_MICRO) {
+			usleep(dif*MILI_TO_MICRO);
 		}
 		gettimeofday(&current,NULL);
 	}

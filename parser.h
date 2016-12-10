@@ -5,6 +5,7 @@
 #define NUM_STREAMS 3
 #define NUM_PACKETS 32
 #define DATA_SIZE 9
+#define DEBUG_PARSER
 
 static char mapping[9][MAX_CHARACTERS] = {
 	"500K", "250K", "125K", "100K", 
